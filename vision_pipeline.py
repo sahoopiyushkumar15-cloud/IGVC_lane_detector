@@ -79,20 +79,23 @@ class IGVCVisionPipeline:
         # 5. Geometric Stable Tracking
         best_l, best_r, l_poly, r_poly, stat_l, stat_r, jl, jr = self.tracker.process_frame(clean_mask)
         
-        # Calculate target steering center (average of left and right at the bottom of the screen)
-        # Note: The robotics team will project this through their Bird's Eye View matrix
+        # Calculate target steering center at the bottom-most visible nodes
         center_x = None
-        if l_poly is not None and r_poly is not None:
-            left_x = l_poly[0]*h**2 + l_poly[1]*h + l_poly[2]
-            right_x = r_poly[0]*h**2 + r_poly[1]*h + r_poly[2]
+        
+        def get_bottom_x(poly):
+            if poly is None or len(poly['nodes']) == 0: return None
+            # Nodes are (y, x). Find the one with max y.
+            bottom_node = max(poly['nodes'], key=lambda n: n[0])
+            return bottom_node[1]
+            
+        left_x = get_bottom_x(l_poly)
+        right_x = get_bottom_x(r_poly)
+        
+        if left_x is not None and right_x is not None:
             center_x = (left_x + right_x) / 2
-        elif l_poly is not None:
-            # If only left lane is visible, offset by standard lane width (e.g. 400px, robotics team must tune)
-            left_x = l_poly[0]*h**2 + l_poly[1]*h + l_poly[2]
+        elif left_x is not None:
             center_x = left_x + 400 
-        elif r_poly is not None:
-            # If only right lane is visible, offset
-            right_x = r_poly[0]*h**2 + r_poly[1]*h + r_poly[2]
+        elif right_x is not None:
             center_x = right_x - 400
             
         return center_x, clean_mask, l_poly, r_poly
