@@ -1,28 +1,40 @@
+import os
+import sys
 import cv2
 import numpy as np
-import sys
 from vision_pipeline import IGVCVisionPipeline
 
 def main():
-    img_path = r"C:\Users\sahoo\.gemini\antigravity\brain\46542847-0609-471c-a2e8-3953a630557a\.user_uploaded\media_1788102029119.png"
+    # If user provides an image path via CLI: python test_single_image.py my_image.jpg
+    if len(sys.argv) > 1:
+        img_path = sys.argv[1]
+    else:
+        # Default to the bundled sample image
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        img_path = os.path.join(script_dir, "sample_track.png")
+        
+    print(f"Loading image from: {img_path}")
     img = cv2.imread(img_path)
     if img is None:
-        print("Failed to load image")
+        print(f"Error: Could not load image from '{img_path}'.")
+        print("Usage: python test_single_image.py [optional_path_to_image]")
         return
         
     rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
-    print("Loading vision pipeline...")
+    print("Initializing vision pipeline and loading pre-trained weights...")
     pipeline = IGVCVisionPipeline()
     
     print("Processing frame...")
     center_x, mask, l_poly, r_poly = pipeline.process_frame(rgb)
     
+    print(f"Detected Steering Center X: {center_x}")
+    
     # Create an overlay (Green where the mask is)
     overlay = img.copy()
     overlay[mask == 255] = [0, 255, 0] # Green for the lane boundaries
     
-    # Draw polynomials if found
+    # Draw smoothed boundary lines
     from stable_tracker import draw_stable_boundary
     draw_stable_boundary(overlay, l_poly, "TRACKED")
     draw_stable_boundary(overlay, r_poly, "TRACKED")
@@ -34,12 +46,11 @@ def main():
         cv2.putText(overlay, f"Steer Target X: {int(center_x)}", (int(center_x) - 100, h - 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
         
     # Save the output
-    out_path = "test_image_output.jpg"
-    cv2.imwrite(out_path, overlay)
-    
-    # Also save the raw mask for debugging
-    cv2.imwrite("test_image_mask.jpg", mask)
-    print("Saved output to test_image_output.jpg and test_image_mask.jpg")
+    out_overlay = "test_image_output.jpg"
+    out_mask = "test_image_mask.jpg"
+    cv2.imwrite(out_overlay, overlay)
+    cv2.imwrite(out_mask, mask)
+    print(f"Done! Saved visualization to '{out_overlay}' and mask to '{out_mask}'.")
 
 if __name__ == "__main__":
     main()

@@ -11,7 +11,7 @@ class IGVCVisionPipeline:
         
         # Load Model
         self.model = MobileNetV2_UNet().to(self.device)
-        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
         self.model.eval()
         
         self.normalize = T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

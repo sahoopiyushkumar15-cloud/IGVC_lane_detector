@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+test_image_output.jpg
+test_image_mask.jpg
+.DS_Store
